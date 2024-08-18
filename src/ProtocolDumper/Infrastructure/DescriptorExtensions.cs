@@ -57,8 +57,26 @@ internal static class DescriptorExtensions
 	{
 		writer.AppendLine($$"""message {{message.Name}} {""");
 		writer.Indentation++;
-		
+
+		foreach (var field in message.Field.array)
+		{
+			if (field is null) continue;
+
+			writer.AppendLine(
+				(field.HasLabel ? GetLabel(field.Label) + " " : "") + 
+				(field.HasTypeName ? field.TypeName + " " : "")
+				+ field.Name + " = " + field.Number + ";"
+			);
+		}
+
 		return writer.CloseBlock();
+
+		static string GetLabel(FieldDescriptorProto.Types.Label label) => label switch {
+			FieldDescriptorProto.Types.Label.Optional => "optional",
+			FieldDescriptorProto.Types.Label.Required => "required",
+			FieldDescriptorProto.Types.Label.Repeated => "repeated",
+			_ => throw new ArgumentOutOfRangeException(nameof(label), label, null)
+		};
 	}
 
 	public static SourceWriter WriteTo(this EnumDescriptorProto enumType, SourceWriter writer)

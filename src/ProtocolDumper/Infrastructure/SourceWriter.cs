@@ -1,5 +1,9 @@
 ﻿using static ProtocolDumper.Infrastructure.WellKnownChars;
+using MemoryExtensions = Il2CppSystem.MemoryExtensions;
+
 using Il2CppSystem.Text;
+using Environment = Il2CppSystem.Environment;
+
 
 namespace ProtocolDumper.Infrastructure;
 
@@ -149,17 +153,18 @@ internal sealed class SourceWriter
 			return this;
 		}
 
-		bool isFinalLine;
-		ReadOnlySpan<char> remaining = text.AsSpan();
-		do
+		if (!text.Contains(Environment.NewLine, StringComparison.Ordinal))
 		{
-			ReadOnlySpan<char> nextLine = GetNextLine(ref remaining, out isFinalLine);
-
 			AddIndentation();
-			_sb.AppendSpan(nextLine);
-			_sb.AppendLine();
+			_sb.AppendLine(text);
+			return this;
 		}
-		while (!isFinalLine);
+
+		foreach (var line in text.Split(Environment.NewLine))
+		{
+			AddIndentation();
+			_sb.AppendLine(line);
+		}
 
 		return this;
 	}
@@ -182,57 +187,4 @@ internal sealed class SourceWriter
 	private string GetCachedToString() => _cachedToString ??= _sb.ToString();
 
 	private void AddIndentation() => _sb.Append(IndentationChar, CharsPerIndentation * _indentation);
-
-	private static ReadOnlySpan<char> GetNextLine(ref ReadOnlySpan<char> remainingText, out bool isFinalLine)
-	{
-		if (remainingText.IsEmpty)
-		{
-			isFinalLine = true;
-			return default;
-		}
-
-		ReadOnlySpan<char> next;
-		ReadOnlySpan<char> rest;
-
-		int lineLength = remainingText.IndexOf('\n');
-		if (lineLength == -1)
-		{
-			lineLength = remainingText.Length;
-			isFinalLine = true;
-			rest = default;
-		}
-		else
-		{
-			rest = remainingText[(lineLength + 1)..];
-			isFinalLine = false;
-		}
-
-		if ((uint)lineLength > 0 && remainingText[lineLength - 1] == '\r')
-		{
-			lineLength--;
-		}
-
-		next = remainingText[..lineLength];
-		remainingText = rest;
-		return next;
-	}
-}
-
-file static class Extensions
-{
-	/// <summary>
-	/// Appends the specified span to the string builder.
-	/// </summary>
-	/// <param name="builder">The string builder.</param>
-	/// <param name="span">The span to append.</param>
-	/// <returns>The string builder.</returns>
-	public static unsafe StringBuilder AppendSpan(this StringBuilder builder, ReadOnlySpan<char> span)
-	{
-		fixed (char* ptr = span)
-		{
-			builder.Append(ptr, span.Length);
-		}
-
-		return builder;
-	}
 }
