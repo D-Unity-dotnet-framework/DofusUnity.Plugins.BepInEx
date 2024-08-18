@@ -151,7 +151,7 @@ internal static class DescriptorExtensions
 		{
 			FieldDescriptorProto.Types.Type.Message or FieldDescriptorProto.Types.Type.Enum
 				=> proto.HasTypeName 
-					? proto.TypeName 
+					? proto.TypeName + " "
 					: throw new InvalidOperationException("Missing type name for enum or message !"),
 
 			_ => GetPrimitiveTypeName(proto.Type) + " "
