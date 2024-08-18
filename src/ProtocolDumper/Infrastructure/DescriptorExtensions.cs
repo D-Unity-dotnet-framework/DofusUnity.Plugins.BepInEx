@@ -121,6 +121,21 @@ internal static class DescriptorExtensions
 				writer.AppendLine(); 
 		}
 
+		if (message.EnumType.array.Length > 0)
+			writer.AppendLine(); // add a newline after nested types if there are any enums
+
+		for (var i = 0; i < message.EnumType.array.Count; i++)
+		{
+			var enumType = message.EnumType.array[i];
+			if (enumType is null) continue;
+
+			enumType.WriteTo(writer);
+
+			// add a newline after each enum except the last one
+			if (i < message.EnumType.array.Count - 1)
+				writer.AppendLine();
+		}
+
 		return writer.CloseBlock();
 
 		static string GetLabelFor(FieldDescriptorProto proto)
@@ -153,6 +168,7 @@ internal static class DescriptorExtensions
 			var lastIndexOfDot = typeName.LastIndexOf('.');
 			return lastIndexOfDot == -1 ? typeName : typeName[(lastIndexOfDot + 1)..];
 		}
+
 		static string GetPrimitiveTypeName(FieldDescriptorProto.Types.Type type) => type switch
 		{
 			FieldDescriptorProto.Types.Type.Double => "double",
