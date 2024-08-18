@@ -1,5 +1,4 @@
 ﻿using Google.Protobuf.Reflection;
-using Il2CppInterop.Generator.Extensions;
 
 namespace ProtocolDumper.Infrastructure;
 
@@ -27,29 +26,14 @@ internal static class DescriptorExtensions
 			writer.AppendLine($"package {proto.Package};")
 				.AppendLine();
 
-		foreach (var message in proto.MessageType.array)
-		{
-			if (message is null) continue;
-
-			message.WriteTo(writer);
-			writer.AppendLine();
-		}
-		
-		foreach (var enumType in proto.EnumType.array)
-		{
-			if (enumType is null) continue;
-
-			enumType.WriteTo(writer);
-			writer.AppendLine();
-		}
-		
-		foreach (var service in proto.Service.array)
-		{
-			if (service is null) continue;
-
+		foreach (var service in proto.Service.array.Where(static s => s is not null))
 			service.WriteTo(writer);
-			writer.AppendLine();
-		}
+		
+		foreach (var enumType in proto.EnumType.array.Where(static e => e is not null)) 
+			enumType.WriteTo(writer);
+
+		foreach (var message in proto.MessageType.array.Where(static m => m is not null)) 
+			message.WriteTo(writer);
 
 		return writer;
 	}
@@ -136,7 +120,7 @@ internal static class DescriptorExtensions
 				writer.AppendLine();
 		}
 
-		return writer.CloseBlock();
+		return writer.AppendLine().CloseBlock();
 
 		static string GetLabelFor(FieldDescriptorProto proto)
 		{
@@ -202,7 +186,7 @@ internal static class DescriptorExtensions
 			writer.AppendLine($"{value.Name} = {value.Number};");
 		}
 
-		return writer.CloseBlock();
+		return writer.AppendLine().CloseBlock();
 	}
 
 	public static SourceWriter WriteTo(this ServiceDescriptorProto service, SourceWriter writer)
@@ -210,6 +194,6 @@ internal static class DescriptorExtensions
 		writer.AppendLine($$"""service {{service.Name}} {""");
 		writer.Indentation++;
 
-		return writer.CloseBlock();
+		return writer.AppendLine().CloseBlock();
 	}
 }
