@@ -2,6 +2,7 @@
 using UnityEngine;
 using BepInEx.Logging;
 using BepInEx.Unity.IL2CPP;
+using Com.Ankama.Dofus.Server.Connection.Protocol;
 using ProtocolDumper.Infrastructure;
 
 namespace ProtocolDumper;
@@ -11,7 +12,7 @@ public class ProtocolDumperPlugin : BasePlugin
 {
 	public override void Load()
 	{
-		Log.LogInfo($"Plugin '{MyPluginInfo.PLUGIN_NAME}' has successfully been loaded!"); 
+		Log.LogInfo($"Plugin '{MyPluginInfo.PLUGIN_NAME}' has successfully been loaded!");
 		AddComponent<DumpProtocolBehavior>();
 	}
 
@@ -21,16 +22,18 @@ public class ProtocolDumperPlugin : BasePlugin
 
 		void Start()
 		{
-			logger.LogDebug("DumpProtocolBehavior.Start()");
-
-			var connectionMessages = Com.Ankama.Dofus.Server.Connection.Protocol.MessageReflection.Descriptor;
-			var gameMessages = Com.Ankama.Dofus.Server.Game.Protocol.MessageReflection.Descriptor;
+			try
+			{
+				var connectionMessages = MessageReflection.Descriptor;
+				var gameMessages = Com.Ankama.Dofus.Server.Game.Protocol.MessageReflection.Descriptor;
 			
-			logger.LogInfo("Connection messages:");
-			logger.LogInfo(connectionMessages.ToProtoFile());
+				logger.LogInfo("Connection messages:");
+				logger.LogInfo(connectionMessages.ToProtoFile());
 
-			logger.LogInfo("Game messages:");
-			logger.LogInfo(gameMessages.ToProtoFile());
+				logger.LogInfo("Game messages:");
+				logger.LogInfo(gameMessages.ToProtoFile());
+			}
+			finally { Destroy(this); } //  we only need to run this once
 		}
 
 		void OnDestroy()

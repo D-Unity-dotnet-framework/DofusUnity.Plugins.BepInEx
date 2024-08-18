@@ -16,7 +16,8 @@ internal static class DescriptorExtensions
 				.AppendLine();
 
 		foreach (var dependency in proto.Dependency.array)
-			writer.AppendLine($"import {dependency};");
+			if (!string.IsNullOrWhiteSpace(dependency))
+				writer.AppendLine($"import {dependency};");
 
 		if (proto.Dependency.Count > 0)
 			writer.AppendLine(); // add a newline after dependencies if there are any
@@ -27,18 +28,24 @@ internal static class DescriptorExtensions
 
 		foreach (var message in proto.MessageType.array)
 		{
+			if (message is null) continue;
+
 			message.WriteTo(writer);
 			writer.AppendLine();
 		}
 		
 		foreach (var enumType in proto.EnumType.array)
 		{
+			if (enumType is null) continue;
+
 			enumType.WriteTo(writer);
 			writer.AppendLine();
 		}
 		
 		foreach (var service in proto.Service.array)
 		{
+			if (service is null) continue;
+
 			service.WriteTo(writer);
 			writer.AppendLine();
 		}
