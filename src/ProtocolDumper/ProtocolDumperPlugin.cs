@@ -2,7 +2,6 @@
 using UnityEngine;
 using BepInEx.Logging;
 using BepInEx.Unity.IL2CPP;
-using Com.Ankama.Dofus.Server.Connection.Protocol;
 using ProtocolDumper.Infrastructure;
 
 namespace ProtocolDumper;
@@ -24,16 +23,12 @@ public class ProtocolDumperPlugin : BasePlugin
 		{
 			try
 			{
-				var connectionMessages = MessageReflection.Descriptor;
-				var gameMessages = Com.Ankama.Dofus.Server.Game.Protocol.MessageReflection.Descriptor;
+				var connectionMessages = Com.Ankama.Dofus.Server.Connection.Protocol.MessageReflection.Descriptor;
 			
 				logger.LogInfo("Connection messages:");
 				logger.LogInfo(connectionMessages.ToProtoFile());
-
-				logger.LogInfo("Game messages:");
-				logger.LogInfo(gameMessages.ToProtoFile());
 			}
-			finally { Destroy(this); } //  we only need to run this once
+			finally { Destroy(this); } // we only need to run this once
 		}
 
 		void OnDestroy()
