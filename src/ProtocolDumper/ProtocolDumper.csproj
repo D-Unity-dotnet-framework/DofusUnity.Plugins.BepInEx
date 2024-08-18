@@ -4,7 +4,7 @@
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <TargetFramework>net6.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
-    <Product>Dofus Unity Protocol dumper</Product>
+    <Product>DofusProtocolDumper</Product>
     <LangVersion>latest</LangVersion>
     <Nullable>enable</Nullable>
     <Version>0.0.1</Version>
@@ -15,4 +15,26 @@
     <PackageReference Include="BepInEx.PluginInfoProps" Version="2.1.0" />
   </ItemGroup>
 
+  <PropertyGroup>
+    <LocalAppDataPath>$([System.Environment]::GetEnvironmentVariable('LOCALAPPDATA'))</LocalAppDataPath>
+    <ManagedAssembliesPath>$(LocalAppDataPath)\Ankama\Dofus-beta\BepInEx\interop</ManagedAssembliesPath>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Reference Include="Il2Cppmscorlib">
+      <HintPath>$(ManagedAssembliesPath)\Il2Cppmscorlib.dll</HintPath>
+    </Reference>
+    <Reference Include="Google.Protobuf">
+      <HintPath>$(ManagedAssembliesPath)\Google.Protobuf.dll</HintPath>
+    </Reference>
+    <Reference Include="UnityEngine.CoreModule">
+      <HintPath>$(ManagedAssembliesPath)\UnityEngine.CoreModule.dll</HintPath>
+    </Reference>
+    <Reference Include="Ankama.Dofus.Protocol.Game">
+      <HintPath>$(ManagedAssembliesPath)\Ankama.Dofus.Protocol.Game.dll</HintPath>
+    </Reference>
+    <Reference Include="Ankama.Dofus.Protocol.Connection">
+      <HintPath>$(ManagedAssembliesPath)\Ankama.Dofus.Protocol.Connection.dll</HintPath>
+    </Reference>
+  </ItemGroup>
 </Project>
