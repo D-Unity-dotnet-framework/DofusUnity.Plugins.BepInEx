@@ -92,10 +92,7 @@ internal sealed class SourceWriter
 	{
 		Indentation--;
 
-		if (Indentation == 0)
-			_sb.Append(CloseBrace);
-		else
-			AppendLine(CloseBrace);
+		AppendLine(CloseBrace);
 
 		return this;
 	}
