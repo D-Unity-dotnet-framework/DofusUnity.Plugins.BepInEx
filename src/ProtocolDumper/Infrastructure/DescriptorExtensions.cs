@@ -59,60 +59,51 @@ internal static class DescriptorExtensions
 		writer.AppendLine($$"""message {{message.Name}} {""");
 		writer.Indentation++;
 
-		Dictionary<int, List<FieldDescriptorProto>>? oneOfProperties = null; 
-		foreach (var field in message.Field.array)
+		var indentBefore = writer.Indentation;
+		for (var i = 0; i < message.Field.array.Count; i++)
 		{
+			var field = message.Field.array[i];
 			if (field is null) continue;
-			
+
 			if (field.HasOneofIndex)
 			{
-				oneOfProperties ??= [];
-				oneOfProperties.GetOrCreate(field.OneofIndex, static _ => [])
-					.Add(field);
-				
+				var isFirst = writer.Indentation == indentBefore;
+				var hasNext = i < message.Field.array.Count - 1
+					&& message.Field.array[i + 1] is not null
+					&& message.Field.array[i + 1].HasOneofIndex
+					&& message.Field.array[i + 1].OneofIndex == field.OneofIndex;
+
+				if (isFirst && !hasNext) // treat it as a regular optional field
+				{
+					writer.AppendLine(
+						"optional " +
+						GetTypeNameFor(field) +
+						field.Name + " = " + field.Number + ";"
+					);
+
+					continue;
+				}
+
+				if (isFirst) {
+					writer.AppendLine($$"""oneof {{message.OneofDecl.array[field.OneofIndex].Name}} {""");
+					writer.Indentation++;
+				}
+
+				writer.AppendLine(
+					GetTypeNameFor(field) +
+					field.Name + " = " + field.Number + ";"
+				);
+
+				if (!hasNext) writer.CloseBlock();
+
 				continue;
 			}
 
 			writer.AppendLine(
-				GetLabelFor(field) + 
-				GetTypeNameFor(field) + 
+				GetLabelFor(field) +
+				GetTypeNameFor(field) +
 				field.Name + " = " + field.Number + ";"
 			);
-		}
-
-		if (oneOfProperties is null) 
-			return writer.CloseBlock();
-
-		foreach (var (index, fields) in oneOfProperties)
-		{
-			if (fields.Count == 0) continue;
-
-
-			if (fields.Count == 1)
-			{
-				var field = fields[0];
-
-				writer.AppendLine(
-					"optional " +
-					GetTypeNameFor(field) +
-					field.Name + " = " + field.Number + ";"
-				);
-
-				continue;
-			}
-
-			writer.AppendLine($$"""oneof {{message.OneofDecl.array[index].Name}} {""");
-			writer.Indentation++;
-
-			foreach (var field in fields)
-			{
-				writer.AppendLine(
-					GetTypeNameFor(field) +
-					field.Name + " = " + field.Number + ";"
-				);
-			}
-
-			writer.CloseBlock();
 		}
 
 		if (message.NestedType.array.Length > 0)
@@ -151,11 +142,17 @@ internal static class DescriptorExtensions
 		{
 			FieldDescriptorProto.Types.Type.Message or FieldDescriptorProto.Types.Type.Enum
 				=> proto.HasTypeName 
-					? proto.TypeName + " "
+					? TrimTypeName(proto.TypeName) + " "
 					: throw new InvalidOperationException("Missing type name for enum or message !"),
 
 			_ => GetPrimitiveTypeName(proto.Type) + " "
 		};
+
+		static string TrimTypeName(string typeName)
+		{
+			var lastIndexOfDot = typeName.LastIndexOf('.');
+			return lastIndexOfDot == -1 ? typeName : typeName[(lastIndexOfDot + 1)..];
+		}
 		static string GetPrimitiveTypeName(FieldDescriptorProto.Types.Type type) => type switch
 		{
 			FieldDescriptorProto.Types.Type.Double => "double",
