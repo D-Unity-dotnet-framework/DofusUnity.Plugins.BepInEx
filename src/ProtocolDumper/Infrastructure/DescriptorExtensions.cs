@@ -182,6 +182,13 @@ internal static class DescriptorExtensions
 		writer.AppendLine($$"""enum {{enumType.Name}} {""");
 		writer.Indentation++;
 
+		foreach (var value in enumType.Value.array)
+		{
+			if (value is null) continue;
+
+			writer.AppendLine($"{value.Name} = {value.Number};");
+		}
+
 		return writer.CloseBlock();
 	}
 
