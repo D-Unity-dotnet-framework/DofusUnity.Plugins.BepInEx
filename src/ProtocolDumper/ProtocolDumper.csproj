@@ -30,11 +30,5 @@
     <Reference Include="UnityEngine.CoreModule">
       <HintPath>$(ManagedAssembliesPath)\UnityEngine.CoreModule.dll</HintPath>
     </Reference>
-    <Reference Include="Ankama.Dofus.Protocol.Game">
-      <HintPath>$(ManagedAssembliesPath)\Ankama.Dofus.Protocol.Game.dll</HintPath>
-    </Reference>
-    <Reference Include="Ankama.Dofus.Protocol.Connection">
-      <HintPath>$(ManagedAssembliesPath)\Ankama.Dofus.Protocol.Connection.dll</HintPath>
-    </Reference>
   </ItemGroup>
 </Project>

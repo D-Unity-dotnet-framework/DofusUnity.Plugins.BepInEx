@@ -11,7 +11,7 @@ namespace ProtocolDumper;
 [BepInPlugin(MyPluginInfo.PLUGIN_GUID, MyPluginInfo.PLUGIN_NAME, MyPluginInfo.PLUGIN_VERSION)]
 public class ProtocolDumperPlugin : BasePlugin
 {
-	static readonly string ProtocolDumpPath = Path.Combine(Paths.PluginPath, "protocol");
+	static readonly string ProtocolDumpPath = Path.Combine(Paths.GameRootPath, $"protocol-{DateTime.Now:yyyyMMddTHHmmss}");
 	
 	public override void Load()
 	{
@@ -83,8 +83,10 @@ public class ProtocolDumperPlugin : BasePlugin
 					Directory.CreateDirectory(Path.GetDirectoryName(filePath)!);
 					File.WriteAllText(filePath, protoFile);
 
-					logger.LogInfo($"Successfully dumped protocol at '{fileName}'");
+					logger.LogDebug($"Successfully dumped protocol at '{filePath}'");
 				}
+
+				logger.LogInfo($"Protocol files have been dumped successfully at '{ProtocolDumpPath}' ! ");
 			}
 			finally { Destroy(this); } // we only need to run this once
 		}
