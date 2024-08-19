@@ -172,17 +172,11 @@ internal static class DescriptorExtensions
 		{
 			FieldDescriptorProto.Types.Type.Message or FieldDescriptorProto.Types.Type.Enum
 				=> proto.HasTypeName 
-					? TrimTypeName(proto.TypeName) + " "
+					? proto.TypeName.GetLastSegment() + " "
 					: throw new InvalidOperationException("Missing type name for enum or message !"),
 
 			_ => GetPrimitiveTypeName(proto.Type) + " "
 		};
-
-		static string TrimTypeName(string typeName)
-		{
-			var lastIndexOfDot = typeName.LastIndexOf('.');
-			return lastIndexOfDot == -1 ? typeName : typeName[(lastIndexOfDot + 1)..];
-		}
 
 		static string GetPrimitiveTypeName(FieldDescriptorProto.Types.Type type) => type switch
 		{
