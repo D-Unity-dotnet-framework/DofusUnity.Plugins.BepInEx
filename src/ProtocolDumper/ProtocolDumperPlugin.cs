@@ -86,7 +86,7 @@ public class ProtocolDumperPlugin : BasePlugin
 					logger.LogDebug($"Successfully dumped protocol at '{filePath}'");
 				}
 
-				logger.LogInfo($"Protocol files have been dumped successfully at '{ProtocolDumpPath}' ! ");
+				logger.LogInfo($"Protocol files have successfully been dumped at '{ProtocolDumpPath}' ! ");
 			}
 			finally { Destroy(this); } // we only need to run this once
 		}
