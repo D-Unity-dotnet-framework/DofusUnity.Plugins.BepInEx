@@ -16,8 +16,16 @@ internal static class DescriptorExtensions
 				.AppendLine();
 
 		foreach (var dependency in proto.Dependency.array)
-			if (!string.IsNullOrWhiteSpace(dependency))
-				writer.AppendLine($"import {dependency};");
+		{
+			if (string.IsNullOrWhiteSpace(dependency))
+				continue;
+
+			var dep = dependency.StartsWith("includes/") 
+				? dependency[9..] 
+				: dependency;
+
+			writer.AppendLine($"""import "{dep}";""");
+		}
 
 		if (proto.Dependency.Count > 0)
 			writer.AppendLine(); // add a newline after dependencies if there are any

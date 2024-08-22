@@ -57,7 +57,7 @@ public class ProtocolDumperPlugin : BasePlugin
 				var protocolTypes = AppDomain.CurrentDomain.GetAssemblies()
 					.Where(ReflectionExtensions.IsProtocolAssembly)
 					.SelectMany(assembly => assembly.GetTypes());
-
+					
 				foreach (var type in protocolTypes)
 				{
 					if (!type.Name.EndsWith("Reflection"))
