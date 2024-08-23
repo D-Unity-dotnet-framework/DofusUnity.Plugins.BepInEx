@@ -12,7 +12,8 @@ namespace ProtocolDumper;
 public class ProtocolDumperPlugin : BasePlugin
 {
 	static readonly string ProtocolDumpPath = Path.Combine(Paths.GameRootPath, $"protocol-{DateTime.Now:yyyyMMddTHHmmss}");
-	
+	static List<Assembly>? _loadedAssemblies;
+
 	public override void Load()
 	{
 		Log.LogInfo($"Plugin '{MyPluginInfo.PLUGIN_NAME}' has successfully been loaded!");
@@ -32,18 +33,30 @@ public class ProtocolDumperPlugin : BasePlugin
 			var assemblyName = Path.GetFileNameWithoutExtension(protocolAssemblyPath);
 			Log.LogDebug($"Checking if assembly '{assemblyName}' is loaded...");
 
-			var hasAssembly = loadedAssemblies.Any(assembly => assembly.GetName().Name?.Contains(assemblyName) ?? false);
-			Log.LogDebug($"Assembly '{assemblyName}' is {(hasAssembly ? "already" : "not yet")} loaded.");
+			var assembly = loadedAssemblies.FirstOrDefault(
+				assembly => assembly.GetName().Name?.Contains(assemblyName) ?? false);
 
-			if (hasAssembly)
-				continue;
+			Log.LogDebug($"Assembly '{assemblyName}' is {(assembly != null ? "already" : "not yet")} loaded.");
 
-			Log.LogDebug($"Loading assembly '{protocolAssemblyPath}'...");
-			Assembly.LoadFrom(protocolAssemblyPath);
+			_loadedAssemblies ??= new(gameAssemblies.Length);
+			_loadedAssemblies.Add(
+				assembly == null 
+					? Assembly.LoadFrom(protocolAssemblyPath) 
+					: assembly
+			);
 		}
 
 		// Now we can dump the protocol files, let's create a new GameObject to do that
 		AddComponent<DumpProtocolBehavior>();
+	}
+
+	public override bool Unload()
+	{
+		Log.LogInfo($"Plugin '{MyPluginInfo.PLUGIN_NAME}' has successfully been unloaded!");
+		_loadedAssemblies?.Clear();
+		_loadedAssemblies = null;
+
+		return base.Unload();
 	}
 
 	class DumpProtocolBehavior : MonoBehaviour
@@ -52,9 +65,15 @@ public class ProtocolDumperPlugin : BasePlugin
 
 		void Start()
 		{
+			if (_loadedAssemblies == null) {
+				logger.LogFatal("No protocol assemblies could be loaded, aborting...");
+				Destroy(this);
+				return;
+			}
+
 			try
 			{
-				var protocolTypes = AppDomain.CurrentDomain.GetAssemblies()
+				var protocolTypes = _loadedAssemblies
 					.Where(ReflectionExtensions.IsProtocolAssembly)
 					.SelectMany(assembly => assembly.GetTypes());
 					
@@ -85,7 +104,7 @@ public class ProtocolDumperPlugin : BasePlugin
 
 					logger.LogDebug($"Successfully dumped protocol at '{filePath}'");
 				}
-
+				
 				logger.LogInfo($"Protocol files have successfully been dumped at '{ProtocolDumpPath}' ! ");
 			}
 			finally { Destroy(this); } // we only need to run this once
