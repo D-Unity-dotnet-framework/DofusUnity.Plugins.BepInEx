@@ -3,21 +3,30 @@ using UnityEngine;
 using BepInEx.Logging;
 using System.Reflection;
 using BepInEx.Unity.IL2CPP;
-using Google.Protobuf.Reflection;
 using ProtocolDumper.Infrastructure;
-using System.Net.Sockets;
 
 namespace ProtocolDumper;
 
 [BepInPlugin(MyPluginInfo.PLUGIN_GUID, MyPluginInfo.PLUGIN_NAME, MyPluginInfo.PLUGIN_VERSION)]
 public class ProtocolDumperPlugin : BasePlugin
 {
-	static readonly string ProtocolDumpPath = Path.Combine(Paths.GameRootPath, $"protocol-{DateTime.Now:yyyyMMddTHHmmss}");
+	private static readonly string DefaultProtocolDumpPath = Path.Combine(Paths.GameRootPath, "protocol");
 	static List<Assembly>? _loadedAssemblies;
+	static string? _protocolDumpPath;
 
 	public override void Load()
 	{
 		Log.LogInfo($"Plugin '{MyPluginInfo.PLUGIN_NAME}' has successfully been loaded!");
+
+		var includeDateConfigEntry = Config.Bind("General", "IncludeDate", false,
+			"Whether to include the current date and time in the output directory name.");
+
+		var dumpPathConfigEntry = Config.Bind("General", "OutputDirectory", DefaultProtocolDumpPath, 
+			"The path where the protocol files will be dumped to.");
+
+		_protocolDumpPath ??= includeDateConfigEntry.Value
+			? $"{dumpPathConfigEntry.Value}-{DateTime.Now:yyyyMMddTHHmmss}"
+			: dumpPathConfigEntry.Value;
 
 		// First we need to make sure that we have all the protocol assemblies loaded
 		var gameAssembliesPath = Path.Combine(Paths.BepInExRootPath, "interop");
@@ -52,6 +61,7 @@ public class ProtocolDumperPlugin : BasePlugin
 		Log.LogInfo($"Plugin '{MyPluginInfo.PLUGIN_NAME}' has successfully been unloaded!");
 		_loadedAssemblies?.Clear();
 		_loadedAssemblies = null;
+		_protocolDumpPath = null;
 
 		return base.Unload();
 	}
@@ -64,7 +74,7 @@ public class ProtocolDumperPlugin : BasePlugin
 		{
 			if (_loadedAssemblies == null) {
 				logger.LogFatal("No protocol assemblies could be loaded, aborting...");
-				Destroy(this);
+				DestroyImmediate(this);
 				return;
 			}
 
@@ -72,11 +82,15 @@ public class ProtocolDumperPlugin : BasePlugin
 			{
 				foreach (var assembly in _loadedAssemblies.Where(ReflectionExtensions.IsProtocolAssembly))
 				{
-					var dumpPath = Path.Combine(ProtocolDumpPath, assembly.GetName().Name!.GetLastSegment().ToLowerInvariant());
+					var protocolType = assembly.GetName().Name!.GetLastSegment().ToLowerInvariant();
+					var dumpPath = Path.Combine(_protocolDumpPath ??= DefaultProtocolDumpPath, protocolType);
+
 					DumpProtocolFor(assembly, Directory.CreateDirectory(dumpPath));
+					
+					logger.LogInfo($"'{protocolType}' protocol files have successfully been dumped at '{dumpPath}' ! ");
 				}
 			}
-			finally { Destroy(this); } // we only need to run this once
+			finally { DestroyImmediate(this); } // we only need to run this once
 		}
 
 		void DumpProtocolFor(Assembly assembly, DirectoryInfo outputDirectory)
@@ -87,16 +101,12 @@ public class ProtocolDumperPlugin : BasePlugin
 					continue;
 
 				logger.LogDebug($"Dumping protocol for '{descriptor.Name}'...");
-				var protoFile = descriptor.ToProtoFile();
+				var protoFileContent = descriptor.ToProtoFile();
 
 				var filePath = Path.Combine(outputDirectory.FullName, descriptor.Name);
 				Directory.CreateDirectory(Path.GetDirectoryName(filePath)!);
-				File.WriteAllText(filePath, protoFile);
-
-				logger.LogDebug($"Successfully dumped protocol at '{filePath}'");
+				File.WriteAllText(filePath, protoFileContent);
 			}
-
-			logger.LogInfo($"Protocol files have successfully been dumped at '{ProtocolDumpPath}' ! ");
 		}
 
 		void OnDestroy()
