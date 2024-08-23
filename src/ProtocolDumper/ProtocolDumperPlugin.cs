@@ -5,6 +5,7 @@ using System.Reflection;
 using BepInEx.Unity.IL2CPP;
 using Google.Protobuf.Reflection;
 using ProtocolDumper.Infrastructure;
+using System.Net.Sockets;
 
 namespace ProtocolDumper;
 
@@ -39,11 +40,7 @@ public class ProtocolDumperPlugin : BasePlugin
 			Log.LogDebug($"Assembly '{assemblyName}' is {(assembly != null ? "already" : "not yet")} loaded.");
 
 			_loadedAssemblies ??= new(gameAssemblies.Length);
-			_loadedAssemblies.Add(
-				assembly == null 
-					? Assembly.LoadFrom(protocolAssemblyPath) 
-					: assembly
-			);
+			_loadedAssemblies.Add(assembly ?? Assembly.LoadFrom(protocolAssemblyPath));
 		}
 
 		// Now we can dump the protocol files, let's create a new GameObject to do that
@@ -73,41 +70,33 @@ public class ProtocolDumperPlugin : BasePlugin
 
 			try
 			{
-				var protocolTypes = _loadedAssemblies
-					.Where(ReflectionExtensions.IsProtocolAssembly)
-					.SelectMany(assembly => assembly.GetTypes());
-					
-				foreach (var type in protocolTypes)
+				foreach (var assembly in _loadedAssemblies.Where(ReflectionExtensions.IsProtocolAssembly))
 				{
-					if (!type.Name.EndsWith("Reflection"))
-						continue;
-
-					if (type.GetProperty("Descriptor") is not { } descriptorProperty) 
-						continue;
-
-					if (descriptorProperty.PropertyType != typeof(FileDescriptor)) 
-						continue;
-
-					if (descriptorProperty.GetValue(null) is not FileDescriptor descriptor) 
-						continue;
-
-					logger.LogDebug($"Dumping protocol for '{descriptor.Name}'...");
-
-					var protoFile = descriptor.ToProtoFile();
-					var fileName = descriptor.Name.StartsWith("message")
-						? "message." + type.Assembly.GetName().Name!.GetLastSegment().ToLowerInvariant() + ".proto" 
-						: descriptor.Name;
-
-					var filePath = Path.Combine(ProtocolDumpPath, fileName);
-					Directory.CreateDirectory(Path.GetDirectoryName(filePath)!);
-					File.WriteAllText(filePath, protoFile);
-
-					logger.LogDebug($"Successfully dumped protocol at '{filePath}'");
+					var dumpPath = Path.Combine(ProtocolDumpPath, assembly.GetName().Name!.GetLastSegment().ToLowerInvariant());
+					DumpProtocolFor(assembly, Directory.CreateDirectory(dumpPath));
 				}
-				
-				logger.LogInfo($"Protocol files have successfully been dumped at '{ProtocolDumpPath}' ! ");
 			}
 			finally { Destroy(this); } // we only need to run this once
+		}
+
+		void DumpProtocolFor(Assembly assembly, DirectoryInfo outputDirectory)
+		{
+			foreach (var type in assembly.GetTypes().Where(static t => t.Name.EndsWith("Reflection")))
+			{
+				if (!type.TryGetFileDescriptor(out var descriptor))
+					continue;
+
+				logger.LogDebug($"Dumping protocol for '{descriptor.Name}'...");
+				var protoFile = descriptor.ToProtoFile();
+
+				var filePath = Path.Combine(outputDirectory.FullName, descriptor.Name);
+				Directory.CreateDirectory(Path.GetDirectoryName(filePath)!);
+				File.WriteAllText(filePath, protoFile);
+
+				logger.LogDebug($"Successfully dumped protocol at '{filePath}'");
+			}
+
+			logger.LogInfo($"Protocol files have successfully been dumped at '{ProtocolDumpPath}' ! ");
 		}
 
 		void OnDestroy()
